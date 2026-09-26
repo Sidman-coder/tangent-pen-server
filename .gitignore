@@ -4,3 +4,4 @@ __pycache__/
 received_recordings/
 venv/
 .venv/
+test_audio/*.wav

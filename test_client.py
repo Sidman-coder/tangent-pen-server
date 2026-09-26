@@ -3,14 +3,16 @@ Sends a test recording to the TANGENT pen upload server, the same way the
 pen firmware does.
 
 Usage:
-    python test_client.py <server_url> <pen_key>
+    python test_client.py <server_url> <pen_key> [--file path/to/recN.wav]
 
-Example:
+Examples:
     python test_client.py http://localhost:5000 <your-key>
+    python test_client.py http://localhost:5000 <your-key> --file test_audio/rec1.wav
 """
 
+import argparse
+import os
 import struct
-import sys
 
 import requests
 
@@ -47,17 +49,26 @@ def build_silent_wav() -> bytes:
 
 
 def main() -> None:
-    if len(sys.argv) != 3:
-        print("Usage: python test_client.py <server_url> <pen_key>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Upload a test recording to the pen server.")
+    parser.add_argument("server_url")
+    parser.add_argument("pen_key")
+    parser.add_argument(
+        "--file",
+        help="upload this WAV instead of generated silence; sent under its own "
+        "filename, so it must be named recN.wav",
+    )
+    args = parser.parse_args()
 
-    url = sys.argv[1].rstrip("/") + "/upload"
-    pen_key = sys.argv[2]
+    if args.file:
+        with open(args.file, "rb") as fh:
+            upload = (os.path.basename(args.file), fh.read(), "audio/wav")
+    else:
+        upload = ("rec1.wav", build_silent_wav(), "audio/wav")
 
     response = requests.post(
-        url,
-        files={"file": ("rec1.wav", build_silent_wav(), "audio/wav")},
-        headers={"X-Pen-Key": pen_key},
+        args.server_url.rstrip("/") + "/upload",
+        files={"file": upload},
+        headers={"X-Pen-Key": args.pen_key},
         timeout=30,
     )
 
